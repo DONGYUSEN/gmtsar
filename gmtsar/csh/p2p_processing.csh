@@ -512,8 +512,8 @@
           xcorr $master.PRM $aligned.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50
           fitoffset.csh 3 3 freq_xcorr.dat 18 >> $aligned.PRM
         else
-          xcorr $master.PRM $aligned.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50
-          fitoffset.csh 2 2 freq_xcorr.dat 18 >> $aligned.PRM
+          xcorr $master.PRM $aligned.PRM -xsearch 256 -ysearch 256 -nx 20 -ny 50
+          fitoffset.csh 3 3 freq_xcorr.dat 18 >> $aligned.PRM
         endif
         resamp $master.PRM $aligned.PRM $aligned.PRMresamp $aligned.SLCresamp 4
         rm $aligned.SLC
