@@ -60,9 +60,9 @@ echo "Working over $region ... "
 #
 # set the range spacing of simulation in units of image range pixel size
 #
-if($rng_samp_rate > 0 && $rng_samp_rate < 25000000) then
+if($rng_samp_rate > 0 && $rng_samp_rate < 24000000) then
   set rng = 1
-else if($rng_samp_rate >= 25000000 && $rng_samp_rate < 72000000 || $SC == 7 ) then
+else if($rng_samp_rate >= 24000000 && $rng_samp_rate < 72000000 || $SC == 7 ) then
   set rng = 2
 else if($rng_samp_rate >= 72000000) then
   set rng = 4
