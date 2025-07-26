@@ -72,7 +72,8 @@ else
 endif
 echo " range decimation is: " $rng
 
-if($SC == 10 || $SC == 11) then
+// if($SC == 10 || $SC == 11) then  --- old
+if($SC == 11 || $SC == 12) then
      gmt grd2xyz --FORMAT_FLOAT_OUT=%lf $2 -s | SAT_llt2rat $1 1 -bod  > trans.dat
   else
      gmt grd2xyz --FORMAT_FLOAT_OUT=%lf $2 -s | SAT_llt2rat $1 0 -bod  > trans.dat
