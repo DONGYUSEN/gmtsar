@@ -220,6 +220,7 @@ int pop_prm(struct PRM *prm, tree *xml_tree, char *file_name) {
 	search_tree(xml_tree, "/product/generalAnnotation/productInformation/radarFrequency/", tmp_c, 1, 0, 1);
 	prm->lambda = c_speed / str2double(tmp_c);
 
+/*
 	search_tree(xml_tree,
 	            "/product/generalAnnotation/downlinkInformationList/"
 	            "downlinkInformation/downlinkValues/txPulseLength/",
@@ -242,7 +243,19 @@ int pop_prm(struct PRM *prm, tree *xml_tree, char *file_name) {
 	            "/product/qualityInformation/qualityDataList/qualityData/"
 	            "imageQuality/imageStatistics/outputDataMean/im/",
 	            tmp_c, 1, 0, 1);
-	prm->xmq = str2double(tmp_c); // Q_mean
+	prm->xmq = str2double(tmp_c); // Q_mean 
+ */
+
+	// start modi because no value in file.
+	search_tree(xml_tree,
+	            "/product/imageAnnotation/processingInformation/swathProcParamsList/"
+	            "swathProcParams/rangeProcessing/lookBandwidth/",
+	            tmp_c, 1, 0, 1);
+	prm->chirp_slope = 0;
+	prm->pulsedur = 0;
+	prm->xmi = 1;
+	prm->xmq = 1;	
+	// end of modi
 
 	search_tree(xml_tree, "/product/imageAnnotation/imageInformation/azimuthTimeInterval/", tmp_c, 1, 0, 1);
 	prm->prf = 1 / str2double(tmp_c);
