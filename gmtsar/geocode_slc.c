@@ -110,7 +110,7 @@ int main (int argc, char **argv) {
     if (prm.SC_identity == 10) {
         strcpy(tmp1,argv[1]);
         tmp1[strlen(tmp1)-4] = '\0';
-        strcat(tmp1,".RMP");
+        strcat(tmp1,".PRM");
         if ((pdin = open(tmp1, O_RDONLY)) < 0)
             die("can't open %s for reading", tmp1);
         st_size = (size_t)4 * (size_t)prm.num_rng_bins * (size_t)prm.num_patches*prm.num_valid_az;
