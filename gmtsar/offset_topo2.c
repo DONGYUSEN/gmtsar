@@ -14,13 +14,14 @@ int main(int argc, char **argv) {
     double suma, sumt, sumc, corr, denom;
     double maxcorr = -1e30;
 
+    /*
     // 只使用2/3的cpu数量，保持系统稳定。
     int ncpu = sysconf(_SC_NPROCESSORS_ONLN);
     int nthreads = (ncpu * 2) / 3;
     if (nthreads < 1) nthreads = 1;
-
     omp_set_num_threads(nthreads);
-
+    */
+    
     void *API = NULL;
     struct GMT_GRID *A = NULL, *T = NULL, *TS = NULL;
 
