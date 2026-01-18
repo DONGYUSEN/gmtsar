@@ -505,7 +505,7 @@ setenv OMP_NUM_THREADS 12
         cp $aligned.PRM $aligned.PRM0
         SAT_baseline $master.PRM $aligned.PRM0 >> $aligned.PRM
         if ($SAT == "ALOS2_SCAN") then
-          xcorr3 $master.PRM $aligned.PRM -xsearch 32 -ysearch 256 -nx 32 -ny 128
+          xcorr2 $master.PRM $aligned.PRM -xsearch 32 -ysearch 256 -nx 32 -ny 128
           awk '{print $4}' < freq_xcorr.dat > tmp.dat
           set amedian = `sort -n tmp.dat | awk ' { a[i++]=$1; } END { print a[int(i/2)]; }'`
           set amax = `echo $amedian | awk '{print $1+3}'`
@@ -513,12 +513,12 @@ setenv OMP_NUM_THREADS 12
           awk '{if($4 > '$amin' && $4 < '$amax') print $0}' < freq_xcorr.dat > freq_alos2.dat
           fitoffset.csh 2 3 freq_alos2.dat 10 >> $aligned.PRM
         else if ($SAT == "ERS" || $SAT == "ENVI" || $SAT == "ALOS" || $SAT == "CSK_RAW" ||  $SAT == "ALOS_SLC") then
-          xcorr3 $master.PRM $aligned.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50 
+          xcorr2 $master.PRM $aligned.PRM -xsearch 128 -ysearch 128 -nx 20 -ny 50 
           fitoffset.csh 3 3 freq_xcorr.dat 18 >> $aligned.PRM
         else if ($SAT == "DJ1" ) then  
           echo "                     ..配准 DJ1            "
           set OMP_NUM_THREADS = 12
-          xcorr3 $master.PRM $aligned.PRM -xsearch 256 -ysearch 256 -nx 16 -ny 16 -noshift
+          xcorr2 $master.PRM $aligned.PRM -xsearch 256 -ysearch 256 -nx 16 -ny 16 -noshift
           filter_offset.csh freq_xcorr.dat  output.txt
           mv output.txt freq_xcorr.dat
           #sed -n '10,20p' freq_xcorr.dat
@@ -526,7 +526,7 @@ setenv OMP_NUM_THREADS 12
         else if ($SAT == "LT1") then  
           echo "                     ..配准 LT1            "
           set OMP_NUM_THREADS = 12
-          xcorr3 $master.PRM $aligned.PRM -xsearch 512 -ysearch 512 -nx 16 -ny 16 -noshift
+          xcorr2 $master.PRM $aligned.PRM -xsearch 512 -ysearch 512 -nx 16 -ny 16 -noshift
           filter_offset.csh freq_xcorr.dat  output.txt
           mv output.txt freq_xcorr.dat
           sed -n '10,20p' freq_xcorr.dat
@@ -539,7 +539,7 @@ setenv OMP_NUM_THREADS 12
           #fitoffset.csh 2 2 freq_xcorr.dat 20 >> $aligned.PRM     
           
         else
-          xcorr3 $master.PRM $aligned.PRM -noshift -xsearch 128 -ysearch 128 -nx 20 -ny 50
+          xcorr2 $master.PRM $aligned.PRM -noshift -xsearch 128 -ysearch 128 -nx 20 -ny 50
           fitoffset.csh 2 2  freq_xcorr.dat 18 >> $aligned.PRM
         endif
         echo "                     ..重采样    "
