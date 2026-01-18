@@ -14,15 +14,15 @@ SHELL		= /bin/bash
 
 # Installation Directories:
 PACKAGE_TARNAME = gmtsar
-GMTSARHOME	= /home/ysdong/GMTSAR
+GMTSARHOME	= /home/ysdong/Software/GMTSAR
 ORBITS_DIR	= /usr/local/orbits
 TIFF_INC	= /usr/local/include
 TIFF_LIB	= /usr/local/lib
 LALIBS		= -llapack -lblas
-prefix          = /home/ysdong/GMTSAR
+prefix          = /home/ysdong/Software/GMTSAR
 exec_prefix     = ${prefix}
 bindir		= $(DESTDIR)${exec_prefix}/bin
-sharedir	= $(DESTDIR)/home/ysdong/GMTSAR/share/gmtsar
+sharedir	= $(DESTDIR)/home/ysdong/Software/GMTSAR/share/gmtsar
 
 # GMTSAR version number
 GMTSAR_VERSION = 6.2.0
@@ -66,17 +66,17 @@ GMT_LIB		= -L/usr/lib/x86_64-linux-gnu -lgmt
 #-------------------------------------------------------------------------------
 #	Required directives for GMTSAR library
 #-------------------------------------------------------------------------------
-GMTSAR		= -L/home/ysdong/GMTSAR/gmtsar -lgmtsar
+GMTSAR		= -L/home/ysdong/Software/GMTSAR/gmtsar -lgmtsar
 #
 #-------------------------------------------------------------------------------
 #	Compiler switches and linker flags
 #-------------------------------------------------------------------------------
 #
-CFLAGS		=  -O2 -Wall -fPIC -fno-strict-aliasing -std=gnu99
+CFLAGS		=  -O3 -Wall -fPIC -fno-strict-aliasing -std=gnu99 -march=native -ffast-math  -fopenmp
 LDFLAGS		=  -s -Wl,--allow-multiple-definition -Wl,-rpath=/usr/lib/x86_64-linux-gnu
 #
 #-------------------------------------------------------------------------------
-#	Shared library file extension. Examples:
+#	Shared library file extension. Examples:-march=native -ffast-math 
 #	Solaris, Linux, IRIX: so	HP: sl		Mac OS X: dylib
 #	SL_VERSION is extension for versioned shared libraries. Examples:
 #	Linux: so.<version>		Mac OS X: <version>.dylib
