@@ -33,7 +33,18 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#include <omp.h>  // OpenMP并行化
+//#include <omp.h>
+
+
+#ifdef _OPENMP
+#include <omp.h>
+#else
+// 如果OpenMP未启用，提供空定义
+#define omp_get_thread_num() 0
+#define omp_get_max_threads() 1
+#define omp_get_num_threads() 1
+#define omp_set_num_threads(n)
+#endif
 
 // 补充缺失的结构体声明（匹配xcorr.h中的定义）
 #ifndef XC_H
@@ -75,6 +86,8 @@ void print_params(struct xcorr *xc);
 void get_locations(struct xcorr *xc);
 /*-------------------------------------------------------*/
 // 调试宏定义：非调试模式下移除调试代码
+
+
 
 
 char *USAGE = "xcorr2 [GMTSAR] - Compute 2-D cross-correlation of two images\n\n"
@@ -322,6 +335,24 @@ int main(int argc, char **argv) {
     clock_t start, end;
     double cpu_time;
     void *API = NULL;
+
+
+    // 检查OpenMP支持
+#ifdef _OPENMP
+    printf("=== OpenMP 已启用 ===\n");
+        // 设置线程数（使用所有可用核心）
+    printf("最大可用线程数: %d\n", omp_get_max_threads());
+    int nthreads = omp_get_max_threads()*4/5+1;
+    if (nthreads < 2) nthreads = 2; 
+    omp_set_num_threads(nthreads);
+    printf("使用 %d 个线程进行计算\n", nthreads);
+#else
+    printf("=== 警告: OpenMP 未启用，程序将串行运行 ===\n");
+    printf("编译时请添加 -fopenmp 选项启用并行计算\n");
+#endif
+
+
+
 
     xc = (struct xcorr *)malloc(sizeof(struct xcorr));
     if (!xc) die("Memory allocation failed for xcorr struct", NULL);

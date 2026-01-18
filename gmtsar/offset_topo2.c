@@ -14,14 +14,21 @@ int main(int argc, char **argv) {
     double suma, sumt, sumc, corr, denom;
     double maxcorr = -1e30;
 
-    /*
-    // 只使用2/3的cpu数量，保持系统稳定。
-    int ncpu = sysconf(_SC_NPROCESSORS_ONLN);
-    int nthreads = (ncpu * 2) / 3;
-    if (nthreads < 1) nthreads = 1;
+    // 检查OpenMP支持
+#ifdef _OPENMP
+    printf("=== OpenMP 已启用 ===\n");
+    // 设置线程数（使用所有可用核心）
+	printf("最大可用线程数: %d\n", omp_get_max_threads());
+    int nthreads = omp_get_max_threads()*5/6;
+	if (nthreads < 2) nthreads = 2; 
     omp_set_num_threads(nthreads);
-    */
-    
+    printf("仅使用 %d 个线程进行计算\n", nthreads);
+#else
+    printf("=== 警告: OpenMP 未启用，程序将串行运行 ===\n");
+    printf("编译时请添加 -fopenmp 选项启用并行计算\n");
+#endif
+
+
     void *API = NULL;
     struct GMT_GRID *A = NULL, *T = NULL, *TS = NULL;
 

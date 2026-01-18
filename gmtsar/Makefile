@@ -37,7 +37,7 @@ PROGS_C		= bperp.c calc_dop_orb.c conv.c esarp.c offset_topo.c phase2topo.c \
 		  SAT_llt2rat.c SAT_look.c SAT_baseline.c make_gaussian_filter.c sbas.c \
           nearest_grid.c fitoffset.c solid_tide.c p_scatter.c split_spectrum.c cut_slc.c \
           split_aperture.c phasediff_get_topo_phase.c geocode_slc.c xcorr2.c SAT_llt2rat2.c \
-	  resamp_omp.c offset_topo2.c
+	  resamp_omp.c offset_topo2.c offset_topo_omp.c
  
 PROGS_O         = $(PROGS_C:.c=.o)
 PROGS           = $(PROGS_C:.c=)
