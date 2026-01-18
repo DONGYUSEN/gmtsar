@@ -43,7 +43,7 @@
   else if ($mode == 2) then
     gmt grdcut @earth_relief_03s $R -Gdem_ortho.grd 
   else 
-    gmt grdcut /home/ysdong/GMTSAR/dem/earth_relief_15s.grd $R -Gdem_ortho.grd 
+    gmt grdcut /home/ysdong/Software/GMTSAR/share/gmtsar/earth_relief_15s.grd $R -Gdem_ortho.grd 
   endif
 #
 # resample and remove geoid
