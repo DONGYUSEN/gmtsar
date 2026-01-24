@@ -10,29 +10,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <stdint.h>  // 用于标准整数类型
+#include <stdint.h>
 
 #define R 0.61803399
-#define C (1.0 - R)  // 更准确的黄金分割常数
+#define C (1.0 - R)
 #define TOL 2
 #define SOL 299792458.0
-#define INIT_CAPACITY 1000000  // 初始容量，减少realloc调用
+#define INIT_CAPACITY 1000000
 
-/* 优化轨道缓存结构 - 内存对齐 */
+/* 优化轨道缓存结构 */
 typedef struct {
     double time;
     double x, y, z;
-} __attribute__((aligned(32))) OrbPos;  // 32字节对齐，适合AVX
+} OrbPos;
 
-/* 预计算的结构，避免重复计算 */
+/* 预计算的结构 */
 typedef struct {
-    double inv_dr;      // 1/dr
-    double prf;         // 脉冲重复频率
-    double t1;          // 起始时间
-    double near_range;  // 近距
-    double dr;          // 距离分辨率
-    double ra;          // 地球半径
-    double fll;         // 扁率因子
+    double inv_dr;
+    double prf;
+    double t1;
+    double near_range;
+    double dr;
+    double ra;
+    double fll;
     double RE;
 } CalcParams;
 
@@ -44,43 +44,57 @@ void null_sio_struct(struct PRM *);
 void get_sio_struct(FILE *, struct PRM *);
 void plh2xyz(double *, double *, double, double);
 
-/* 快速距离计算 - 使用hypot减少溢出风险 */
+/* 快速距离计算 */
 static inline double dist3_fast(double x, double y, double z, const OrbPos *o) {
     double dx = x - o->x;
     double dy = y - o->y;
     double dz = z - o->z;
-    // 使用hypot函数，更稳定
-    return hypot(hypot(dx, dy), dz);
+    return sqrt(dx*dx + dy*dy + dz*dz);
 }
 
-/* 优化的黄金搜索算法 */
+/* 优化的黄金搜索算法 - 修复边界检查 */
 static int golden_search(const OrbPos *orb, int a, int b, 
                          double x, double y, double z, 
                          double *rng, double *tm) {
+    // 确保索引有效
+    if (a >= b) {
+        *rng = dist3_fast(x, y, z, &orb[a]);
+        *tm = orb[a].time;
+        return a;
+    }
+    
     int x0 = a, x3 = b;
+    // 确保x1, x2在有效范围内
     int x1 = a + (int)((b - a) * C);
     int x2 = b - (int)((b - a) * C);
     
-    // 预计算距离
+    // 确保索引不越界
+    if (x1 < a) x1 = a;
+    if (x1 > b) x1 = b;
+    if (x2 < a) x2 = a;
+    if (x2 > b) x2 = b;
+    
     double f1 = dist3_fast(x, y, z, &orb[x1]);
     double f2 = dist3_fast(x, y, z, &orb[x2]);
     
     int iterations = 0;
-    const int max_iter = 100;  // 安全限制
+    const int max_iter = 100;
     
     while ((x3 - x0) > TOL && iterations++ < max_iter) {
         if (f2 < f1) {
-            // 最小值在[x1, x3]区间
             x0 = x1; 
             x1 = x2;
             x2 = (int)(R * x3 + C * x1);
+            if (x2 < x1) x2 = x1 + 1;
+            if (x2 > x3) x2 = x3;
             f1 = f2;
             f2 = dist3_fast(x, y, z, &orb[x2]);
         } else {
-            // 最小值在[x0, x2]区间
             x3 = x2; 
             x2 = x1;
             x1 = (int)(R * x0 + C * x2);
+            if (x1 < x0) x1 = x0;
+            if (x1 > x2) x1 = x2;
             f2 = f1;
             f1 = dist3_fast(x, y, z, &orb[x1]);
         }
@@ -96,16 +110,26 @@ static int golden_search(const OrbPos *orb, int a, int b,
         *rng = f2;
     }
     
+    // 确保索引有效
+    if (xmin < a) xmin = a;
+    if (xmin > b) xmin = b;
+    
     *tm = orb[xmin].time;
     return xmin;
 }
 
-/* 优化的轨道计算函数 */
+/* 优化的轨道计算函数 - 修复内存管理 */
 static int calculate_orbit_positions(struct SAT_ORB *orb, OrbPos *op, 
                                      double ts, double t1, int nrec, int npad) {
     int i, k;
     int nval = 6;
     int N = nrec + 2 * npad;
+    
+    // 检查轨道数据是否足够
+    if (orb->nd < nval) {
+        fprintf(stderr, "Error: Not enough orbit data points (%d < %d)\n", orb->nd, nval);
+        return -1;
+    }
     
     // 一次性分配所有临时数组
     double *pt = malloc(sizeof(double) * orb->nd);
@@ -117,16 +141,20 @@ static int calculate_orbit_positions(struct SAT_ORB *orb, OrbPos *op,
     double *pvz = malloc(sizeof(double) * orb->nd);
     
     if (!pt || !px || !py || !pz || !pvx || !pvy || !pvz) {
-        free(pt); free(px); free(py); free(pz);
-        free(pvx); free(pvy); free(pvz);
+        if (pt) free(pt);
+        if (px) free(px);
+        if (py) free(py);
+        if (pz) free(pz);
+        if (pvx) free(pvx);
+        if (pvy) free(pvy);
+        if (pvz) free(pvz);
         return -1;
     }
     
     // 预计算时间基准
     double pt0 = 86400.0 * orb->id + orb->sec;
     
-    // 并行化数据准备（如果数据量足够大）
-    #pragma omp parallel for schedule(static)
+    // 注意：hermite_c可能不是线程安全的，改为串行
     for (k = 0; k < orb->nd; k++) {
         pt[k] = pt0 + k * orb->dsec;
         px[k] = orb->points[k].px;
@@ -137,12 +165,11 @@ static int calculate_orbit_positions(struct SAT_ORB *orb, OrbPos *op,
         pvz[k] = orb->points[k].vz;
     }
     
-    // 并行计算轨道位置
-    #pragma omp parallel for schedule(static)
+    // 串行计算轨道位置（hermite_c可能不是线程安全的）
     for (i = 0; i < N; i++) {
         double time = t1 - npad * ts + i * ts;
         double xs, ys, zs;
-        int ir;
+        int ir = 0;
         
         // 插值计算位置
         hermite_c(pt, px, pvx, orb->nd, nval, time, &xs, &ir);
@@ -157,18 +184,25 @@ static int calculate_orbit_positions(struct SAT_ORB *orb, OrbPos *op,
     }
     
     // 清理临时内存
-    free(pt); free(px); free(py); free(pz);
-    free(pvx); free(pvy); free(pvz);
+    free(pt);
+    free(px);
+    free(py);
+    free(pz);
+    free(pvx);
+    free(pvy);
+    free(pvz);
     
     return N;
 }
 
 /* 优化的主处理函数 */
-static void process_points( double *in, double *out, int npt,
+static void process_points(double *in, double *out, int npt,
                           const OrbPos *orb_pos, int orb_count,
                           const CalcParams *params) {
-    #pragma omp parallel for schedule(dynamic, 1024)
-    for (int i = 0; i < npt; i++) {
+    int i;
+    
+    #pragma omp parallel for schedule(dynamic, 1024) private(i)
+    for (i = 0; i < npt; i++) {
         double rp[3], xp[3];
         
         // 输入数据顺序：经度、纬度、高度
@@ -179,17 +213,22 @@ static void process_points( double *in, double *out, int npt,
         // 将地理坐标转换为地心直角坐标
         plh2xyz(rp, xp, params->ra, params->fll);
 
-		/* compute the topography due to the difference between the local radius and
-		 * center radius  修正高度？ysdong*/ 
-		rp[2] = sqrt(xp[0] * xp[0] + xp[1] * xp[1] + xp[2] * xp[2]) - params->RE;
-        in[3 * i + 2] = rp[2]; //add end ysdong 
+        /* compute the topography due to the difference between the local radius and
+         * center radius  修正高度 */
+        rp[2] = sqrt(xp[0] * xp[0] + xp[1] * xp[1] + xp[2] * xp[2]) - params->RE;
+        in[3 * i + 2] = rp[2];
 
-
+        // 确保orb_count至少为1
+        if (orb_count <= 0) {
+            out[2 * i + 0] = 0.0;
+            out[2 * i + 1] = 0.0;
+            continue;
+        }
+        
         // 使用黄金搜索找到最近的点
         double rng0, tm;
         golden_search(orb_pos, 0, orb_count - 1, 
                      xp[0], xp[1], xp[2], &rng0, &tm);
-
         
         // 计算距离门和方位时间
         out[2 * i + 0] = (rng0 - params->near_range) * params->inv_dr;
@@ -199,8 +238,13 @@ static void process_points( double *in, double *out, int npt,
 
 /* 安全的内存重新分配 */
 static void* safe_realloc(void *ptr, size_t new_size) {
+    if (new_size == 0) {
+        free(ptr);
+        return NULL;
+    }
+    
     void *new_ptr = realloc(ptr, new_size);
-    if (!new_ptr && new_size > 0) {
+    if (!new_ptr) {
         fprintf(stderr, "Error: Memory reallocation failed (requested %zu bytes)\n", new_size);
         free(ptr);
         exit(EXIT_FAILURE);
@@ -261,6 +305,14 @@ int main(int argc, char **argv) {
     read_orb(fo, orb);
     fclose(fo);
     
+    // 检查轨道数据是否足够
+    if (orb->nd < 6) {
+        fprintf(stderr, "Error: insufficient orbit data points (%d)\n", orb->nd);
+        free(orb->points);
+        free(orb);
+        return EXIT_FAILURE;
+    }
+    
     // 计算时间参数
     double t1 = 86400.0 * prm.clock_start;
     double t2 = t1 + prm.num_patches * prm.num_valid_az / prm.prf;
@@ -268,9 +320,10 @@ int main(int argc, char **argv) {
     int npad = (prm.prf < 600.0) ? 20000 : 8000;
     
     int nrec = (int)((t2 - t1) / ts + 0.5);
+    int total_orb_pos = nrec + 2 * npad;
     
     // 分配轨道位置缓存
-    OrbPos *orb_pos = malloc(sizeof(OrbPos) * (nrec + 2 * npad));
+    OrbPos *orb_pos = malloc(sizeof(OrbPos) * total_orb_pos);
     if (!orb_pos) {
         perror("Memory allocation failed for orbit positions");
         free(orb->points);
@@ -333,17 +386,16 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
     
-    // 预计算参数，避免重复计算
+    // 预计算参数
     CalcParams params;
     params.dr = 0.5 * SOL / prm.fs;
-    params.inv_dr = 1.0 / params.dr;  // 预计算倒数，减少除法
+    params.inv_dr = 1.0 / params.dr;
     params.prf = prm.prf;
     params.t1 = t1;
     params.near_range = prm.near_range;
     params.ra = prm.ra;
     params.fll = (prm.ra - prm.rc) / prm.ra;
-    params.RE = prm.RE; //ysdong
-    
+    params.RE = prm.RE;
     
     // 处理所有点
     process_points(in, out, npt, orb_pos, orb_count, &params);
@@ -357,20 +409,17 @@ int main(int argc, char **argv) {
         double lon = in[3 * i + 0];
         
         if (binary_short) {
-            // 二进制短整型输出
             int16_t buf[5];
             buf[0] = (int16_t)round(rg);
             buf[1] = (int16_t)round(az);
             buf[2] = (int16_t)round(h);
-            buf[3] = (int16_t)round(lon * 1000);  // 保留3位小数
+            buf[3] = (int16_t)round(lon * 1000);
             buf[4] = (int16_t)round(lat * 1000);
             fwrite(buf, sizeof(int16_t), 5, stdout);
         } else if (binary_double) {
-            // 二进制双精度输出
             double buf[5] = {rg, az, h, lon, lat};
             fwrite(buf, sizeof(double), 5, stdout);
         } else {
-            // 文本输出
             printf("%.6f %.6f %.6f %.6f %.6f\n", rg, az, h, lon, lat);
         }
     }
@@ -379,7 +428,7 @@ int main(int argc, char **argv) {
     free(in);
     free(out);
     free(orb_pos);
-    free(orb->points);
+    if (orb->points) free(orb->points);
     free(orb);
     
     return EXIT_SUCCESS;
