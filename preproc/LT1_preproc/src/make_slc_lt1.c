@@ -129,6 +129,7 @@ int write_slc(TIFF *tif, FILE *slc, char *orbdir, double SLC_factor) {
 
 	buf = (uint16 *)_TIFFmalloc(TIFFScanlineSize(tif));
 	width = widthi - widthi % 4;
+	height = height - height % 4;
 	tmp = (short *)malloc(width * 2 * sizeof(short));
 	printf("Writing SLC..Image Size: %d X %d...\n", width, height);
 
