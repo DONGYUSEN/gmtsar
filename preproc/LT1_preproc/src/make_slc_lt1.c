@@ -329,7 +329,7 @@ int pop_prm(struct PRM *prm, tree *xml_tree, char *file_name) {
 
 	search_tree(xml_tree, "/level1Product/productInfo/imageDataInfo/imageRaster/numberOfColumns/", tmp_c, 1, 0, 1);
 	// tmp_i = (int)str2double(tmp_c) - (int)str2double(tmp_c)%4;
-	prm->num_rng_bins = (int)str2double(tmp_c) - (int)str2double(tmp_c)%4;
+	prm->num_rng_bins = (int)str2double(tmp_c) - (int)str2double(tmp_c) % 4;
 	prm->bytes_per_line = prm->num_rng_bins * 4; // tmp_i*4;
 	prm->good_bytes = prm->bytes_per_line;
 	prm->caltone = 0.0;
